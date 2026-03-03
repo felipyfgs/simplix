@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: simplix_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: simplix
+      POSTGRES_USER: simplix
+      POSTGRES_PASSWORD: simplix
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-quepasa.sql:/docker-entrypoint-initdb.d/init-quepasa.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simplix"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  quepasa:
+    image: codeleaks/quepasa:latest
+    container_name: simplix_quepasa
+    ports:
+      - "31000:31000"
+    environment:
+      WEBSERVER_PORT: "31000"
+      MASTERKEY: "change-me-master-key"
+      ACCOUNTSETUP: "true"
+      USER: "admin@simplix.io"
+      PASSWORD: "change-me-password"
+      SIGNING_SECRET: "change-me-signing-secret"
+      DBDRIVER: "postgres"
+      DBHOST: "postgres"
+      DBPORT: "5432"
+      DBDATABASE: "quepasa_db"
+      DBUSER: "quepasa"
+      DBPASSWORD: "quepasa"
+      GROUPS: "true"
+      DIRECT: "true"
+      READRECEIPTS: "false"
+      CALLS: "false"
+      SWAGGER: "true"
+      WEBSOCKETSSL: "false"
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - quepasa_volume:/opt/quepasa
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:31000/healthapi > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  quepasa_volume:
